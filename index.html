@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>Fizetés & Túlóra (nettó) – PWA</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.png" type="image/png">
+  <meta name="theme-color" content="#0B111F">
+  <style>
+    :root{
+      --bg:#0B111F;
+      --card:#11192B;
+      --muted:#AEB7CC;
+      --text:#ffffff;
+      --brand:#3B82F6;
+      --ok:#10B981;
+      --warn:#F59E0B;
+      --danger:#EF4444;
+      --input:#0f172a;
+      --border:#1f2937;
+      --shadow:0 8px 30px rgba(0,0,0,.25);
+      --radius:18px;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+    h1{font-size:1.4rem;margin:0 0 .75rem 0}
+    h2{font-size:1.1rem;margin:1.25rem 0 .5rem 0;color:var(--muted);font-weight:600}
+    .wrap{max-width:720px;margin:0 auto;padding:16px}
+    .card{background:linear-gradient(180deg, #0B111F 0%, #0B111F 40%, #0B111F 100%);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:12px 0}
+    .row{display:flex;gap:8px;flex-wrap:wrap}
+    .col{flex:1 1 240px;min-width:220px}
+    label{display:block;font-size:.9rem;margin:.25rem 0 .35rem .25rem;color:var(--muted)}
+    input,select,button,textarea{
+      width:100%;padding:12px 14px;border-radius:14px;border:1px solid var(--border);
+      background:var(--input);color:var(--text);outline:none;transition:.15s;
+    }
+    input:focus,select:focus,textarea:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(59,130,246,.2)}
+    .inline{display:flex;align-items:center;gap:10px}
+    .inline input[type="checkbox"]{width:auto;height:auto}
+    .muted{color:var(--muted);font-size:.9rem}
+    .btn{background:var(--brand);border:0;color:#fff;font-weight:600;cursor:pointer}
+    .btn:active{transform:translateY(1px)}
+    .btn.secondary{background:#1f2937}
+    .pill{display:inline-block;padding:.35rem .6rem;border-radius:999px;background:#111827;border:1px solid var(--border);font-size:.8rem;color:var(--muted)}
+    .section-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem}
+    .grid-days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+    .day{padding:10px;border:1px dashed var(--border);border-radius:12px;text-align:center}
+    .legend{display:flex;gap:8px;flex-wrap:wrap}
+    .legend .pill{border-style:solid}
+    .list{display:flex;flex-direction:column;gap:8px;max-height:260px;overflow:auto}
+    .rowline{display:flex;gap:8px}
+    .rowline > *:nth-child(1){flex:0 0 96px}
+    .rowline > *:nth-child(2){flex:1}
+    .right{float:right}
+    .total{font-size:1.25rem;font-weight:800}
+    .kpi{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    @media (max-width:640px){.kpi{grid-template-columns:1fr}}
+    .ok{color:var(--ok)} .warn{color:var(--warn)} .danger{color:var(--danger)}
+    .footer{opacity:.7;font-size:.85rem;margin:1rem 0;text-align:center}
+    .hr{height:1px;background:var(--border);margin:.75rem 0}
+    .badge{font-size:.75rem;color:#93c5fd}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:12px;justify-content:space-between">
+        <div>
+          <h1>Fizetés &amp; Túlóra (nettó)</h1>
+          <div class="muted">Egyszerű, 3 fájlos PWA. Minden számítás nettóban történik.</div>
+        </div>
+        <img src="icon.png" alt="ikon" width="48" height="48" style="border-radius:12px">
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">
+        <h2>Alap beállítások</h2>
+        <span class="badge">Adatok mentése: <span id="saveState">–</span></span>
+      </div>
+      <div class="row">
+        <div class="col">
+          <label>Nettó órabér (Ft)</label>
+          <input id="hourlyNet" type="number" min="0" step="1" placeholder="pl. 2000">
+        </div>
+        <div class="col">
+          <label>Év–hónap</label>
+          <input id="ym" type="month">
+        </div>
+      </div>
+      <div class="row">
+        <div class="col">
+          <label>Műszak órák – Délelőtt</label>
+          <input id="hMorning" type="number" min="1" max="12" step="0.25" value="8">
+        </div>
+        <div class="col">
+          <label>Műszak órák – Délután</label>
+          <input id="hAfternoon" type="number" min="1" max="12" step="0.25" value="8">
+        </div>
+      </div>
+      <div class="row">
+        <div class="col">
+          <label class="inline"><input id="startsMorning" type="checkbox" checked> A hónap délelőttös héttel kezdődik</label>
+          <div class="muted">Heti váltás: egyik hét délelőtt, másik hét délután (H–P).</div>
+        </div>
+        <div class="col">
+          <label class="inline"><input id="hasMobility" type="checkbox"> Mozgóbér (alap 10%)</label>
+          <div class="muted">Pipáld be, ha jár a hónapban.</div>
+        </div>
+      </div>
+      <div class="legend" style="margin-top:.5rem">
+        <span class="pill">Túlóra: 180% (fix), pótlék nem jár rá</span>
+        <span class="pill">Műszakpótlék: délutános napokon +30%</span>
+        <span class="pill">Ünnepnap: alapbér (pótlék nélkül)</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">
+        <h2>Naptár, túlóra és szabadság</h2>
+        <button class="btn secondary" id="regen">Naptár frissítése</button>
+      </div>
+      <div id="calendar" class="grid-days"></div>
+      <div class="hr"></div>
+      <div class="row">
+        <div class="col">
+          <label>Szabadság napok (több dátum vesszővel, pl. 2025-07-02,2025-07-03)</label>
+          <input id="vacation" placeholder="YYYY-MM-DD,YYYY-MM-DD">
+          <div class="muted">Szabadság esetén nincs műszakpótlék.</div>
+        </div>
+      </div>
+      <h2>Túlóra (napokra bontva)</h2>
+      <div id="overtimeList" class="list"></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">
+        <h2>Eredmények</h2>
+        <div class="inline">
+          <button class="btn" id="calc">Számol</button>
+          <button class="btn secondary" id="save">Ment</button>
+        </div>
+      </div>
+      <div class="kpi">
+        <div>
+          <div class="muted">Alap havi nettó (műszakpótlék nélkül)</div>
+          <div id="baseNet" class="total">–</div>
+        </div>
+        <div>
+          <div class="muted">Műszakpótlék (nettó)</div>
+          <div id="shiftNet" class="total">–</div>
+        </div>
+        <div>
+          <div class="muted">Mozgóbér (ha jár) – 10% az alapból</div>
+          <div id="mobNet" class="total">–</div>
+        </div>
+        <div>
+          <div class="muted">Túlóra (nettó, 180%)</div>
+          <div id="otNet" class="total ok">–</div>
+        </div>
+      </div>
+      <div class="hr"></div>
+      <div class="row">
+        <div class="col">
+          <div class="muted">Havi összes (alap + pótlék + mozgóbér)</div>
+          <div id="monthlyNoOT" class="total">–</div>
+        </div>
+        <div class="col">
+          <div class="muted">Havi összes túlórával együtt</div>
+          <div id="monthlyWithOT" class="total ok">–</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">
+        <h2>Archívum (mentett hónapok)</h2>
+        <button class="btn secondary" id="clearAll">Összes törlése</button>
+      </div>
+      <div id="history"></div>
+    </div>
+
+    <div class="footer">
+      <div>Számítás a beküldött bérpapír logikája alapján: minden szám nettóban, műszakpótlék 30% délutános napokra, túlóra 180%.</div>
+      <div>Magyar ünnepnapok figyelembe véve. Mentés: böngésző – <code>localStorage</code>.</div>
+    </div>
+  </div>
+
+<script>
+// ====== Segéd: magyar ünnepnapok (állami munkaszüneti napok) ======
+function easterSunday(year){
+  // Computus (Meeus/Jones/Butcher)
+  const a = year % 19;
+  const b = Math.floor(year/100);
+  const c = year % 100;
+  const d = Math.floor(b/4);
+  const e = b % 4;
+  const f = Math.floor((b+8)/25);
+  const g = Math.floor((b-f+1)/3);
+  const h = (19*a + b - d - g + 15) % 30;
+  const i = Math.floor(c/4);
+  const k = c % 4;
+  const l = (32 + 2*e + 2*i - h - k) % 7;
+  const m = Math.floor((a + 11*h + 22*l)/451);
+  const month = Math.floor((h + l - 7*m + 114)/31); // 3=March, 4=April
+  const day = ((h + l - 7*m + 114) % 31) + 1;
+  return new Date(year, month-1, day);
+}
+function huHolidays(year){
+  const easter = easterSunday(year);
+  const goodFri = new Date(easter); goodFri.setDate(easter.getDate()-2);
+  const easterMon = new Date(easter); easterMon.setDate(easter.getDate()+1);
+  const pentecostMon = new Date(easter); pentecostMon.setDate(easter.getDate()+50);
+  const list = [
+    new Date(year,0,1),     // jan 1 – Újév
+    new Date(year,2,15),    // márc 15
+    goodFri,                // nagypéntek
+    easterMon,              // húsvéthétfő
+    new Date(year,4,1),     // máj 1
+    pentecostMon,           // pünkösdhétfő
+    new Date(year,7,20),    // aug 20
+    new Date(year,9,23),    // okt 23
+    new Date(year,10,1),    // nov 1
+    new Date(year,11,25),   // dec 25
+    new Date(year,11,26)    // dec 26
+  ];
+  // Return ISO strings YYYY-MM-DD for easy compare
+  return list.map(d=>d.toISOString().slice(0,10));
+}
+
+function ymd(d){ return d.toISOString().slice(0,10) }
+function iso(y,m,d){ return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}` }
+
+// ====== Állapot ======
+const $ = sel => document.querySelector(sel);
+const SKEY = "fizetes-app-v1";
+
+function loadState(){
+  const raw = localStorage.getItem(SKEY);
+  return raw ? JSON.parse(raw) : { months:{} };
+}
+function saveState(st){
+  localStorage.setItem(SKEY, JSON.stringify(st));
+  $("#saveState").textContent = "mentve";
+  setTimeout(()=>$("#saveState").textContent="–",1200);
+}
+
+// ====== Naptár generálása ======
+function buildCalendar(){
+  const ym = $("#ym").value;
+  if(!ym) return;
+  const [Y, M] = ym.split("-").map(Number);
+  const first = new Date(Y, M-1, 1);
+  const last = new Date(Y, M, 0);
+  const holis = new Set(huHolidays(Y));
+  const startsMorning = $("#startsMorning").checked;
+  const hMorning = parseFloat($("#hMorning").value || 8);
+  const hAfternoon = parseFloat($("#hAfternoon").value || 8);
+  const vac = new Set(($("#vacation").value||"").split(",").map(s=>s.trim()).filter(Boolean));
+
+  const cal = $("#calendar");
+  cal.innerHTML = "";
+  // Header week days
+  const days = ["H","K","Sze","Cs","P","Szo","V"];
+  for(const d of days){ const el=document.createElement("div"); el.className="day"; el.innerHTML=`<strong>${d}</strong>`; cal.appendChild(el) }
+
+  // Pad start with blanks to Monday-first grid
+  const startPad = (first.getDay()+6)%7; // Monday=0
+  for(let i=0;i<startPad;i++){ const el=document.createElement("div"); el.className="day"; el.style.opacity=.4; el.textContent=""; cal.appendChild(el) }
+
+  // Which week type for each day (Mon-Sun week boundary)
+  // We'll compute ISO week index relative to first Monday on/after the 1st.
+  function weekIndex(date){
+    const d = new Date(date);
+    const monday = new Date(Y, M-1, 1);
+    // move to Monday of the first calendar week
+    const shift = (monday.getDay()+6)%7; // 0..6
+    monday.setDate(monday.getDate()-shift);
+    const diff = Math.floor((d - monday) / (1000*60*60*24));
+    return Math.floor(diff/7); // 0-based
+  }
+
+  // Build days
+  for(let day=1; day<= last.getDate(); day++){
+    const dt = new Date(Y, M-1, day);
+    const isWeekend = dt.getDay()===0 || dt.getDay()===6;
+    const isHoliday = holis.has(ymd(dt));
+    const w = weekIndex(dt);
+    const morningWeek = startsMorning ? (w%2===0) : (w%2===1);
+    const shiftType = morningWeek ? "délelőtt" : "délután";
+    const shiftHours = morningWeek ? hMorning : hAfternoon;
+    const isVacation = vac.has(iso(Y,M,day));
+
+    const box = document.createElement("div");
+    box.className = "day";
+    let tags = [];
+    if(isWeekend) tags.push("Hétvége");
+    if(isHoliday) tags.push("Ünnep");
+    if(isVacation) tags.push("Szabi");
+
+    box.innerHTML = `<div><strong>${String(day).padStart(2,"0")}</strong></div>
+      <div class="muted" style="margin:.25rem 0">${shiftType} • ${shiftHours} óra</div>
+      ${tags.length? `<div class="muted" style="font-size:.75rem">${tags.join(" • ")}</div>`:""}
+    `;
+    cal.appendChild(box);
+  }
+
+  // Túlóra list
+  const list = $("#overtimeList");
+  list.innerHTML = "";
+  for(let d=1; d<= last.getDate(); d++){
+    const row = document.createElement("div");
+    row.className="rowline";
+    row.innerHTML = `
+      <input type="date" value="${iso(Y,M,d)}" readonly>
+      <input type="number" min="0" step="0.25" placeholder="Túlóra (óra)" id="ot-${iso(Y,M,d)}">
+    `;
+    list.appendChild(row);
+  }
+}
+
+// ====== Számítás ======
+function parseVac(){
+  return new Set(($("#vacation").value||"").split(",").map(s=>s.trim()).filter(Boolean));
+}
+
+function calc(){
+  const hourly = parseFloat($("#hourlyNet").value||0);
+  const ym = $("#ym").value;
+  if(!ym || !hourly){ alert("Add meg az év–hónapot és a nettó órabért!"); return; }
+  const [Y, M] = ym.split("-").map(Number);
+  const first = new Date(Y, M-1, 1);
+  const last = new Date(Y, M, 0);
+  const holis = new Set(huHolidays(Y));
+  const startsMorning = $("#startsMorning").checked;
+  const hMorning = parseFloat($("#hMorning").value||8);
+  const hAfternoon = parseFloat($("#hAfternoon").value||8);
+  const vac = parseVac();
+  const mobility = $("#hasMobility").checked;
+
+  let baseHours = 0;
+  let shiftHoursTotal = 0;
+
+  function weekIndex(date){
+    const d = new Date(date);
+    const monday = new Date(Y, M-1, 1);
+    const shift = (monday.getDay()+6)%7;
+    monday.setDate(monday.getDate()-shift);
+    const diff = Math.floor((d - monday) / (1000*60*60*24));
+    return Math.floor(diff/7);
+  }
+
+  for(let day=1; day<= last.getDate(); day++){
+    const dt = new Date(Y, M-1, day);
+    const isWeekend = dt.getDay()===0 || dt.getDay()===6;
+    const isHoliday = holis.has(ymd(dt));
+    const isVacation = vac.has(ymd(dt));
+
+    if(!isWeekend && !isHoliday && !isVacation){
+      const w = weekIndex(dt);
+      const morningWeek = startsMorning ? (w%2===0) : (w%2===1);
+      const shiftHours = morningWeek ? hMorning : hAfternoon;
+      baseHours += shiftHours;
+      if (!morningWeek){
+        shiftHoursTotal += 3; // 18:30-21:30 azaz 3 óra
+      }
+    }
+  }
+
+  // Túlóra
+  let otHours = 0;
+  for(let day=1; day<= last.getDate(); day++){
+    const id = `#ot-${iso(Y,M,day)}`;
+    const val = parseFloat((document.querySelector(id)?.value)||0);
+    otHours += isNaN(val) ? 0 : val;
+  }
+
+  const baseNet = Math.round(baseHours * hourly);
+  const shiftNet = Math.round(shiftHoursTotal * hourly * 0.30);
+  const mobNet = mobility ? Math.round(baseNet * 0.10) : 0;
+  const otNet = Math.round(otHours * hourly * 1.80);
+
+  const monthlyNoOT = baseNet + shiftNet + mobNet;
+  const monthlyWithOT = monthlyNoOT + otNet;
+
+  const ft = n => new Intl.NumberFormat('hu-HU').format(n) + " Ft";
+
+  $("#baseNet").textContent = ft(baseNet);
+  $("#shiftNet").textContent = ft(shiftNet);
+  $("#mobNet").textContent = ft(mobNet);
+  $("#otNet").textContent = ft(otNet);
+  $("#monthlyNoOT").textContent = ft(monthlyNoOT);
+  $("#monthlyWithOT").textContent = ft(monthlyWithOT);
+
+  return {hourly, ym, baseNet, shiftNet, mobNet, otNet, monthlyNoOT, monthlyWithOT,
+          inputs: readInputs()};
+}
+
+// ====== Mentés / betöltés ======
+function readInputs(){
+  const data = {
+    hourlyNet: $("#hourlyNet").value,
+    ym: $("#ym").value,
+    hMorning: $("#hMorning").value,
+    hAfternoon: $("#hAfternoon").value,
+    startsMorning: $("#startsMorning").checked,
+    hasMobility: $("#hasMobility").checked,
+    vacation: $("#vacation").value,
+    overtime: {}
+  };
+  const ymv = $("#ym").value;
+  if(ymv){
+    const [Y, M] = ymv.split("-").map(Number);
+    const last = new Date(Y, M, 0);
+    for(let d=1; d<= last.getDate(); d++){
+      const k = iso(Y,M,d);
+      if(data.overtime && data.overtime[k]){
+        const el = document.querySelector(`#ot-${k}`); if(el) el.value = data.overtime[k];
+      }
+    }
+  }
+  return data;
+}
+function writeInputs(data){
+  $("#hourlyNet").value = data.hourlyNet || "";
+  $("#ym").value = data.ym || "";
+  $("#hMorning").value = data.hMorning || 8;
+  $("#hAfternoon").value = data.hAfternoon || 8;
+  $("#startsMorning").checked = !!data.startsMorning;
+  $("#hasMobility").checked = !!data.hasMobility;
+  $("#vacation").value = data.vacation || "";
+  if(data.ym){
+    buildCalendar();
+    const [Y, M] = data.ym.split("-").map(Number);
+    const last = new Date(Y, M, 0);
+    for(let d=1; d<= last.getDate(); d++){
+      const k = iso(Y,M,d);
+      if(data.overtime && data.overtime[k]){
+        const el = document.querySelector(`#ot-${k}`); if(el) el.value = data.overtime[k];
+      }
+    }
+  }
+}
+
+// ====== Események ======
+$("#regen").addEventListener("click", buildCalendar);
+$("#calc").addEventListener("click", calc);
+$("#save").addEventListener("click", saveMonth);
+$("#clearAll").addEventListener("click", ()=>{ localStorage.removeItem(SKEY); renderHistory(); });
+
+// On load
+(function init(){
+  const today = new Date();
+  $("#ym").value = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}`;
+  buildCalendar();
+  renderHistory();
+})();
+</script>
+</body>
+</html>
