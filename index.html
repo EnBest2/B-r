@@ -1,178 +1,212 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="hu">
 <head>
-  <meta charset="utf-8" />
-  <title>Bérkövető – kétműszak, nettó, pótlék</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <!-- iOS PWA -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bérkövető – Kétműszakos nettó kalkulátor</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon.png" />
+  <meta name="theme-color" content="#0b84f3" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Bérkövető" />
-  <link rel="apple-touch-icon" href="icon.png" />
-  <!-- Manifest -->
-  <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#0b84f3" />
   <style>
-    :root{
-      --bg:#0a0a0a; --card:#141414; --muted:#8a8a8a; --text:#f6f6f6; --accent:#0b84f3; --ok:#2ecc71; --warn:#ffb020;
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Inter, sans-serif;
+      background: #0a0a0a;
+      color: #f6f6f6;
+      padding: 16px;
     }
-    *{box-sizing:border-box}
-    html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font:16px/1.4 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Inter,Arial}
-    .wrap{max-width:860px;margin:0 auto;padding:12px 12px 96px}
-    header{position:sticky;top:0;background:linear-gradient(180deg, rgba(10,10,10,.98), rgba(10,10,10,.8) 70%, transparent);backdrop-filter:blur(6px);z-index:9}
-    .row{display:flex;gap:8px;flex-wrap:wrap}
-    .card{background:var(--card);border:1px solid #222;border-radius:12px;padding:12px}
-    .grid{display:grid;gap:8px}
-    .grid.cols-2{grid-template-columns:1fr 1fr}
-    .grid.cols-3{grid-template-columns:1fr 1fr 1fr}
-    label{display:flex;flex-direction:column;gap:6px;font-size:14px;color:#ddd}
-    input,select,button{appearance:none;border:1px solid #2a2a2a;background:#0f0f0f;color:var(--text);padding:10px 12px;border-radius:10px;font-size:16px}
-    input[type="checkbox"]{width:20px;height:20px;border-radius:6px;vertical-align:middle}
-    .inline{display:flex;align-items:center;gap:10px}
-    button.primary{background:var(--accent);border-color:#0672d4}
-    button.ghost{background:#0f0f0f}
-    .muted{color:var(--muted)}
-    .kpi{display:flex;gap:12px;flex-wrap:wrap}
-    .kpi .item{flex:1 1 160px;background:#0f0f0f;border:1px solid #222;border-radius:12px;padding:10px}
-    .item b{display:block;font-size:13px;color:#bbb;margin-bottom:6px}
-    .item .val{font-size:20px}
-    .day{display:grid;grid-template-columns:84px 1fr;gap:10px;align-items:center;padding:10px;border-bottom:1px solid #222}
-    .day .left{opacity:.9}
-    .pill{display:inline-block;background:#0f0f0f;border:1px solid #222;border-radius:999px;padding:3px 8px;font-size:12px;margin-right:6px}
-    .money{color:var(--ok)}
-    .warn{color:var(--warn)}
-    footer{position:fixed;bottom:0;left:0;right:0;background:linear-gradient(0deg, rgba(10,10,10,.98), rgba(10,10,10,.8) 70%, transparent);backdrop-filter:blur(6px);padding:8px 12px;border-top:1px solid #222}
-    .footbar{display:flex;gap:8px}
-    @media (max-width:720px){.grid.cols-3{grid-template-columns:1fr}}
+    h1 {
+      font-size: 22px;
+      margin-bottom: 12px;
+    }
+    label {
+      display: block;
+      margin-bottom: 12px;
+    }
+    input, select {
+      width: 100%;
+      padding: 10px;
+      margin-top: 4px;
+      border-radius: 8px;
+      border: 1px solid #333;
+      background: #141414;
+      color: #fff;
+      font-size: 16px;
+    }
+    button {
+      padding: 10px 16px;
+      border-radius: 8px;
+      border: none;
+      background: #0b84f3;
+      color: white;
+      font-size: 16px;
+      margin-top: 12px;
+      cursor: pointer;
+    }
+    .section {
+      margin-bottom: 24px;
+    }
+    .day-entry {
+      border: 1px solid #222;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 8px;
+      background: #141414;
+    }
+    .summary {
+      font-size: 18px;
+      margin-top: 12px;
+      color: #2ecc71;
+    }
   </style>
 </head>
 <body>
-  <header class="wrap">
-    <div class="row card">
-      <div class="grid cols-3" style="width:100%">
-        <label>
-          <span>Hónap</span>
-          <input id="inp-month" type="month" />
-        </label>
-        <label>
-          <span>Kezdő hét</span>
-          <select id="inp-start-week">
-            <option value="morning">Délelőttös héttel indul</option>
-            <option value="afternoon">Délutános héttel indul</option>
-          </select>
-        </label>
-        <div>
-          <span class="muted">Mintázat</span>
-          <div class="inline" style="margin-top:8px">
-            <button id="btn-generate" class="primary">Hónap előtöltése</button>
-            <button id="btn-clear" class="ghost">Törlés</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </header>
+  <h1>Bérkövető – Kétműszakos nettó kalkulátor</h1>
 
-  <main class="wrap">
-    <section class="card">
-      <div class="grid cols-3">
-        <div class="grid">
-          <label>
-            <span>Bér számítás mód</span>
-            <select id="mode">
-              <option value="netHourly">Közvetlen nettó órabér</option>
-              <option value="grossMonthly">Bruttó havi + normaóra</option>
-            </select>
-          </label>
-          <label id="netHourlyBox">
-            <span>Nettó órabér (Ft/óra)</span>
-            <input id="netHourly" type="number" min="0" step="1" placeholder="pl. 2000" />
-          </label>
-          <div id="grossBox" class="grid" style="display:none">
-            <label>
-              <span>Bruttó havi bér (Ft)</span>
-              <input id="grossMonthly" type="number" min="0" step="1000" placeholder="pl. 400000" />
-            </label>
-            <label>
-              <span>Havi normaórák</span>
-              <input id="normHours" type="number" min="1" step="1" placeholder="pl. 168" />
-            </label>
-          </div>
-          <label class="inline">
-            <input id="szjaFree" type="checkbox" />
-            <span>SZJA-mentes (ne vonjon 15% SZJA-t)</span>
-          </label>
-        </div>
+  <div class="section">
+    <label>
+      Hónap kiválasztása:
+      <input type="month" id="monthPicker" />
+    </label>
 
-        <div class="grid">
-          <label>
-            <span>Délutáni pótlék mérték (%)</span>
-            <input id="allowancePct" type="number" min="0" max="100" step="1" value="30" />
-          </label>
-          <label>
-            <span>Pótlék alapja</span>
-            <select id="allowanceBase">
-              <option value="net">Nettó órabér</option>
-              <option value="gross">Bruttó órabér (nettósítva)</option>
-            </select>
-          </label>
-          <label class="inline">
-            <input id="overtimeMultiplier" type="number" step="0.1" min="0" value="1" style="max-width:100px" />
-            <span>Túlóra szorzó (nem hivatalos → pótlék nélkül, alap: 1.0)</span>
-          </label>
-        </div>
+    <label>
+      Melyik héttel indul a hónap?
+      <select id="startWeek">
+        <option value="morning">Délelőttös</option>
+        <option value="afternoon">Délutános</option>
+      </select>
+    </label>
 
-        <div class="grid">
-          <label>
-            <span>Szünet délelőtt (perc)</span>
-            <input id="breakMorning" type="number" min="0" step="5" value="0" />
-          </label>
-          <label>
-            <span>Szünet délután (perc)</span>
-            <input id="breakAfternoon" type="number" min="0" step="5" value="0" />
-          </label>
-          <label>
-            <span>Utolsó mentés</span>
-            <input id="lastSaved" type="text" readonly />
-          </label>
-        </div>
-      </div>
-    </section>
+    <button onclick="generateMonth()">Hónap generálása</button>
+  </div>
 
-    <section class="card">
-      <div class="kpi">
-        <div class="item"><b>Havi nettó eddig</b><div class="val money" id="kpi-net">0 Ft</div></div>
-        <div class="item"><b>Összes óra</b><div class="val" id="kpi-hours">0 h</div></div>
-        <div class="item"><b>Pótlék órák</b><div class="val" id="kpi-allowanceHours">0 h</div></div>
-        <div class="item"><b>Túlóra</b><div class="val" id="kpi-ot">0 h</div></div>
-      </div>
-    </section>
+  <div class="section">
+    <label>
+      Nettó órabér (Ft):
+      <input type="number" id="netHourly" />
+    </label>
 
-    <section class="card">
-      <div class="row" style="justify-content:space-between;align-items:center">
-        <h3 style="margin:0">Napok</h3>
-        <span class="muted">Húzd ki a műszak végét, ha csúsztál.</span>
-      </div>
-      <div id="days"></div>
-    </section>
-  </main>
+    <label>
+      Délutáni pótlék (% csak 18:00–21:30 között):
+      <input type="number" id="allowancePct" value="30" />
+    </label>
 
-  <footer>
-    <div class="wrap">
-      <div class="footbar">
-        <button id="btn-save" class="primary">Mentés</button>
-        <button id="btn-export" class="ghost">Export (JSON)</button>
-        <a id="btn-icon" class="ghost" download="icon.png" href="#" style="text-decoration:none;display:inline-block;padding:10px 12px;border:1px solid #2a2a2a;border-radius:10px">Ikon letöltése</a>
-        <span class="muted" style="margin-left:auto">iPhone: megnyit → Megosztás → Hozzáadás a Főképernyőhöz</span>
-      </div>
-    </div>
-  </footer>
+    <label>
+      Túlóra szorzó (alap: 1.8):
+      <input type="number" id="overtimeMultiplier" value="1.8" step="0.1" />
+    </label>
+
+    <label>
+      <input type="checkbox" id="szjaFree" />
+      SZJA-mentes vagyok (ne vonjon 15% SZJA-t)
+    </label>
+  </div>
+
+  <div class="section">
+    <h2>Napok</h2>
+    <div id="days"></div>
+  </div>
+
+  <div class="section summary" id="summary">Havi nettó összesen: 0 Ft</div>
 
   <script>
-    // ---------- Helpers ----------
-    const $ = sel => document.querySelector(sel);
-    const pad = n => String(n).padStart(2,'0');
-    const fmtFt = n => (Math.round(n).toLocaleString('hu-HU') + ' Ft');
-    const minutes = s => { const [H,M]=s.split(':').map(Number); return H*60+M; };
-    const toHHMM = m => pad(Math.floor(m/60))+':'+pad(m%60);
-    const overlapMin = (a1,a2,b1,b2) => Math.max(0, Math.min(a2,b2) - Math.max(a1,b1));
-    const todayMonthValue = ()
+    const daysDiv = document.getElementById("days");
+    const summaryDiv = document.getElementById("summary");
+
+    function generateMonth() {
+      const monthStr = document.getElementById("monthPicker").value;
+      const startWeek = document.getElementById("startWeek").value;
+      if (!monthStr) return;
+
+      daysDiv.innerHTML = "";
+      const [year, month] = monthStr.split("-").map(Number);
+      const date = new Date(year, month - 1, 1);
+      let isMorningWeek = startWeek === "morning";
+
+      while (date.getMonth() === month - 1) {
+        const day = date.getDate();
+        const weekday = date.getDay(); // 0 = Sunday
+        const label = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+        const isWeekend = weekday === 0 || weekday === 6;
+
+        const entry = document.createElement("div");
+        entry.className = "day-entry";
+        entry.innerHTML = `
+          <strong>${label}</strong><br/>
+          <label>
+            Műszak típusa:
+            <select class="shift">
+              <option value="none">Nincs</option>
+              <option value="morning">Délelőtt</option>
+              <option value="afternoon">Délután</option>
+            </select>
+          </label>
+          <label>
+            Műszak vége (óra:perc):
+            <input type="time" class="endTime" value="${isMorningWeek ? "13:30" : "21:30"}" />
+          </label>
+        `;
+        daysDiv.appendChild(entry);
+
+        if (weekday === 5) isMorningWeek = !isMorningWeek; // váltás szombaton
+        date.setDate(day + 1);
+      }
+
+      calculateTotal();
+    }
+
+    function calculateTotal() {
+      const netHourly = parseFloat(document.getElementById("netHourly").value) || 0;
+      const allowancePct = parseFloat(document.getElementById("allowancePct").value) || 0;
+      const overtimeMultiplier = parseFloat(document.getElementById("overtimeMultiplier").value) || 1;
+      const szjaFree = document.getElementById("szjaFree").checked;
+
+      let totalNet = 0;
+
+      document.querySelectorAll(".day-entry").forEach(entry => {
+        const shift = entry.querySelector(".shift").value;
+        const endTime = entry.querySelector(".endTime").value;
+        if (shift === "none") return;
+
+        let baseMinutes = shift === "morning" ? 480 : 480;
+        let endMinutes = timeToMinutes(endTime);
+        let startMinutes = shift === "morning" ? timeToMinutes("05:30") : timeToMinutes("13:30");
+        let workedMinutes = Math.max(0, endMinutes - startMinutes);
+        let overtimeMinutes = Math.max(0, workedMinutes - baseMinutes);
+
+        let baseNet = (baseMinutes / 60) * netHourly;
+        let overtimeNet = (overtimeMinutes / 60) * netHourly * overtimeMultiplier;
+
+        let allowanceMinutes = 0;
+        if (shift === "afternoon") {
+          const allowanceStart = timeToMinutes("18:00");
+          const allowanceEnd = timeToMinutes("21:30");
+          allowanceMinutes = Math.max(0, Math.min(endMinutes, allowanceEnd) - Math.max(startMinutes, allowanceStart));
+        }
+        let allowanceNet = (allowanceMinutes / 60) * netHourly * (allowancePct / 100);
+
+        let dayNet = baseNet + overtimeNet + allowanceNet;
+        if (!szjaFree) dayNet *= 0.85;
+
+        totalNet += dayNet;
+      });
+
+      summaryDiv.textContent = `Havi nettó összesen: ${Math.round(totalNet).toLocaleString("hu-HU")} Ft`;
+    }
+
+    function timeToMinutes(t) {
+      const [h, m] = t.split(":").map(Number);
+      return h * 60 + m;
+    }
+
+    document.getElementById("netHourly").addEventListener("input", calculateTotal);
+    document.getElementById("allowancePct").addEventListener("input", calculateTotal);
+    document.getElementById("overtimeMultiplier").addEventListener("input", calculateTotal);
+    document.getElementById("szjaFree").addEventListener("change", calculateTotal);
+    daysDiv.addEventListener("input", calculateTotal);
+  </script>
+</body>
+</html>
