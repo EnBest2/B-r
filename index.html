@@ -357,14 +357,20 @@ function calc(){
     const isHoliday = holis.has(ymd(dt));
     const isVacation = vac.has(ymd(dt));
 
-    if(!isWeekend && !isHoliday && !isVacation){
-      const w = weekIndex(dt);
-      const morningWeek = startsMorning ? (w%2===0) : (w%2===1);
-      const shiftHours = morningWeek ? hMorning : hAfternoon;
-      baseHours += shiftHours;
-      if (!morningWeek){
-        shiftHoursTotal += 3; // 18:30-21:30 azaz 3 óra
-      }
+    if(!isWeekend){
+        const w = weekIndex(dt);
+        const morningWeek = startsMorning ? (w%2===0) : (w%2===1);
+        const shiftHours = morningWeek ? hMorning : hAfternoon;
+        
+        // Alap órák számítása: munkanapokra (hétköznap, ünnepnap, szabadság)
+        if (!isWeekend) {
+            baseHours += shiftHours;
+        }
+
+        // Műszakpótlék számítása: csak délutáni műszakban, ha nem ünnep vagy szabi
+        if (!morningWeek && !isHoliday && !isVacation){
+          shiftHoursTotal += 3; // 18:30-21:30 azaz 3 óra
+        }
     }
   }
 
@@ -414,10 +420,8 @@ function readInputs(){
     const [Y, M] = ymv.split("-").map(Number);
     const last = new Date(Y, M, 0);
     for(let d=1; d<= last.getDate(); d++){
-      const k = iso(Y,M,d);
-      if(data.overtime && data.overtime[k]){
-        const el = document.querySelector(`#ot-${k}`); if(el) el.value = data.overtime[k];
-      }
+      const v = document.querySelector(`#ot-${iso(Y,M,d)}`)?.value || "";
+      if(v) data.overtime[iso(Y,M,d)] = v;
     }
   }
   return data;
