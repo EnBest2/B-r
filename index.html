@@ -1,0 +1,30 @@
+
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bérkövető</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <h1>Bérkövető</h1>
+    <div class="controls">
+      <label>Órabér (nettó): <input type="number" id="wage" value="180"></label>
+      <label>Hónap: <input type="month" id="month"></label>
+      <label>Kezdő műszak: 
+        <select id="shiftStart">
+          <option value="day">Délelőtt</option>
+          <option value="afternoon">Délután</option>
+        </select>
+      </label>
+      <button onclick="generateCalendar()">Naptár generálása</button>
+      <button onclick="exportPDF()">PDF Export</button>
+    </div>
+    <div id="calendar"></div>
+    <div id="summary"></div>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>
